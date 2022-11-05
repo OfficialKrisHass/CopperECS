@@ -3,6 +3,8 @@
 #include <string>
 #include <bitset>
 
+#include "Component.h"
+
 const int maxComponents = 32;
 
 class Object {
@@ -13,7 +15,14 @@ class Object {
 public:
 	Object() = default;
 
-	template<typename T> T* AddComponent()      { return scene->registry.AddComponent<T>(*this); }
+	template<typename T> T* AddComponent() {
+		
+		T* component = scene->registry.AddComponent<T>(*this);
+		component->object = this;
+
+		return component;
+	
+	}
 	template<typename T> T* GetComponent()      { return scene->registry.GetComponent<T>(id); }
 	template<typename T> bool HasComponent()    { return scene->registry.HasComponent<T>(id); }
 	template<typename T> void RemoveComponent() {        scene->registry.RemoveComponent<T>(*this); }

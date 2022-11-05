@@ -1,7 +1,5 @@
 05/11/2022
 
--Create Object now returns a Object, not a pointer
--Added Scene View, A loop that gives you only objects with the components you specified
--RemoveComponent and AddComponent Take Object References so they can also update the component Mask of the Object
--Added GetID and GetComponentMask to Object.h
--Added GetObjects to Registry.h
+-Added Component.h a Base Component Struct that every component you want to add to an object MUST inherit from
+-Added Object* object to Component.h a pointer to the object the component is on
+-When Object.AddComponent function is called component.object is set to this
