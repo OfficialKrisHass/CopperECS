@@ -1,0 +1,7 @@
+05/11/2022
+
+-Create Object now returns a Object, not a pointer
+-Added Scene View, A loop that gives you only objects with the components you specified
+-RemoveComponent and AddComponent Take Object References so they can also update the component Mask of the Object
+-Added GetID and GetComponentMask to Object.h
+-Added GetObjects to Registry.h

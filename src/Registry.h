@@ -31,7 +31,7 @@ private:
 class Registry {
 
 public:
-	Object* CreateObject(Scene* scene, const char* name) {
+	Object CreateObject(Scene* scene, const char* name) {
 
 		if (!gaps.empty()) {
 
@@ -39,55 +39,50 @@ public:
 			obj.id = gaps.front();
 			obj.scene = scene;
 			obj.name = name;
-			obj.componentMask = &componentMasks[obj.id];
-			obj.transform = AddComponent<Transform>(obj.id);
 
-			gaps.erase(gaps.begin());
 			objects[obj.id] = obj;
+			gaps.erase(gaps.begin());
 
-			return &objects[obj.id];
+			return obj;
 
 		}
 
 		Object obj;
-		obj.id = objects.size();
+		obj.id = (int32_t) objects.size();
 		obj.scene = scene;
 		obj.name = name;
 
-		componentMasks.push_back(std::bitset<maxComponents>());
-		obj.componentMask = &componentMasks.back();
 		objects.push_back(obj);
 
-		objects[obj.id].transform = AddComponent<Transform>(obj.id);
-
-		return &objects[obj.id];
+		return obj;
 
 	}
-	void DestroyObject(int32_t id) {
+	void DestroyObject(Object& obj) {
 
-		objects[id].id++;
-		/*objects[id].scene = nullptr;
-		objects[id].componentMask = nullptr;
-		objects[id].name = nullptr;
-		objects[id].transform = nullptr;*/
+		gaps.push_back(obj.id);
 
-		componentMasks[id] = std::bitset<maxComponents>();
+		objects[obj.id] = Object();
 
-		gaps.push_back(id);
+		obj.name = nullptr;
+		obj.scene = nullptr;
+		obj.id = -1;
+		obj.componentMask = std::bitset<maxComponents>();
 
 	}
 
-	template<typename T> T* AddComponent(int32_t id) {
+	template<typename T> T* AddComponent(Object& obj) {
 
-		if (!objects[id]) return nullptr;
+		if (!obj) return nullptr;
+		if (!objects[obj.id]) return nullptr;
 
 		int cID = GetCID<T>();
 
 		if (pools.size() <= cID) pools.resize(cID + 1, nullptr);
 		if (pools[cID] == nullptr) pools[cID] = new ComponentPool(sizeof(T));
 
-		T* component = new (pools[cID]->Get(id)) T();
-		componentMasks[id].set(cID);
+		T* component = new (pools[cID]->Get(obj.id)) T();
+		objects[obj.id].componentMask.set(cID);
+		obj.componentMask.set(cID);
 
 		return component;
 
@@ -97,20 +92,10 @@ public:
 		if (!objects[id]) return nullptr;
 
 		int cID = GetCID<T>();
-		if (!componentMasks[id].test(cID)) return nullptr;
+		if (!objects[id].componentMask.test(cID)) return nullptr;
 
 		T* component = static_cast<T*>(pools[cID]->Get(id));
 		return component;
-
-	}
-	template<typename T> void RemoveComponent(int32_t id) {
-
-		if (!objects[id]) return;
-
-		int cID = GetCID<T>();
-		if (!componentMasks[id].test(cID)) return;
-
-		componentMasks[id].reset(cID);
 
 	}
 	template<typename T> bool HasComponent(int32_t id) {
@@ -119,15 +104,27 @@ public:
 
 		int cID = GetCID<T>();
 		
-		return componentMasks[id].test(cID);
+		return objects[id].componentMask.test(cID);
 
 	}
+	template<typename T> void RemoveComponent(Object& obj) {
+
+		if (!obj) return;
+		if (!objects[obj.id]) return;
+
+		int cID = GetCID<T>();
+		if (!objects[obj.id].componentMask.test(cID)) return;
+
+		objects[obj.id].componentMask.reset(cID);
+		obj.componentMask.reset(cID);
+
+	}
+
+	std::vector<Object> GetObjects() const { return objects; }
 
 private:
 	std::vector<Object> objects;
 	std::vector<uint32_t> gaps;
-
-	std::vector<std::bitset<maxComponents>> componentMasks;
 	std::vector<ComponentPool*> pools;
 
 };

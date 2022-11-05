@@ -7,9 +7,10 @@ class Scene {
 	friend class Object;
 
 public:
-	Object* CreateObject(const char* name = "Object") { return registry.CreateObject(this, name); }
-	void DestroyObject(Object* obj) { registry.DestroyObject(obj->id); }
-	void DestroyObject(Object obj)  { registry.DestroyObject(obj.id); }
+	Object CreateObject(const char* name = "Object") { return registry.CreateObject(this, name); }
+	void DestroyObject(Object& obj) { registry.DestroyObject(obj); }
+
+	Registry* GetRegistry() { return &registry; }
 
 private:
 	Registry registry;
