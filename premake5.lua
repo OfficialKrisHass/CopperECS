@@ -15,9 +15,16 @@ project "ECS"
 
     files {
 
+        "include/CopperECS/**.h",
+
         "src/**.h",
         "src/**.cpp"
 
     }
 
-    includedirs "src"
+    includedirs {
+
+        "src",
+        "include/CopperECS"
+
+    }
