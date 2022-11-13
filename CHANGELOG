@@ -1,7 +1,3 @@
-11/11/2022
+13/11/2022
 
--Removed the SceneView Constructor that takes in a non pointer Scene
--Fixed a Bug Where if there was only one object that didn't have the component you specified in SceneView it would
- Still return it
--Added SetObjectName and GetObjectName in Registry.h, pretty self explanatory, if you want these functions to be
- a function of Object class you will need to add the definition into a .cpp file
+-Fixed a Bug in the DestroyObject Function in Registry.h where it wouldn't update the Reference

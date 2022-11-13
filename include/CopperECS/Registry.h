@@ -55,7 +55,6 @@ public:
 		objects[id].id = id;
 		objects[id].scene = scene;
 		objects[id].name = name;
-		//name.copy(objects[id].name.data(), name.size(), 0);
 
 		return objects[id];
 
@@ -74,8 +73,12 @@ public:
 	void DestroyObject(Object& obj) {
 
 		gaps.push_back(obj.id);
-
 		objects[obj.id] = Object();
+
+		obj.name = "";
+		obj.scene = nullptr;
+		obj.id = -1;
+		obj.componentMask = std::bitset<maxComponents>();
 
 	}
 
