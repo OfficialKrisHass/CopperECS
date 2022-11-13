@@ -30,31 +30,45 @@ private:
 
 class Registry {
 
+	friend class Scene;
+
 public:
-	Object CreateObject(Scene* scene, const char* name) {
+	Object CreateObject(Scene* scene, std::string name) {
 
 		if (!gaps.empty()) {
 
-			Object obj;
-			obj.id = gaps.front();
-			obj.scene = scene;
-			obj.name = name;
+			int32_t id = gaps.front();
 
-			objects[obj.id] = obj;
+			objects[id].id = id;
+			objects[id].scene = scene;
+			objects[id].name = name;
+
 			gaps.erase(gaps.begin());
 
-			return obj;
+			return objects[id];
 
 		}
 
-		Object obj;
-		obj.id = (int32_t) objects.size();
-		obj.scene = scene;
-		obj.name = name;
+		int32_t id = (int32_t) objects.size();
+		objects.push_back(Object());
 
-		objects.push_back(obj);
+		objects[id].id = id;
+		objects[id].scene = scene;
+		objects[id].name = name;
+		//name.copy(objects[id].name.data(), name.size(), 0);
 
-		return obj;
+		return objects[id];
+
+	}
+	Object CreateObjectFromID(int32_t id, Scene* scene, std::string name) {
+
+		if (id > (int32_t) objects.size() - 1) objects.resize(id + 1, Object());
+
+		objects[id].id = id;
+		objects[id].scene = scene;
+		objects[id].name = name;
+
+		return objects[id];
 
 	}
 	void DestroyObject(Object& obj) {
@@ -62,11 +76,6 @@ public:
 		gaps.push_back(obj.id);
 
 		objects[obj.id] = Object();
-
-		obj.name = nullptr;
-		obj.scene = nullptr;
-		obj.id = -1;
-		obj.componentMask = std::bitset<maxComponents>();
 
 	}
 
@@ -120,7 +129,11 @@ public:
 
 	}
 
-	std::vector<Object> GetObjects() const { return objects; }
+	int GetNumOfObjects() { return (int) objects.size(); }
+	Object GetObjectFromID(int32_t id) { return objects[id]; }
+	std::string GetObjectName(Object obj) { return objects[obj.id].name; }
+
+	void SetObjectName(std::string name, Object obj) { obj.name = name; objects[obj.id].name = name; }
 
 private:
 	std::vector<Object> objects;

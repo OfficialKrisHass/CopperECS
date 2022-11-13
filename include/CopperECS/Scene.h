@@ -7,7 +7,13 @@ class Scene {
 	friend class Object;
 
 public:
-	Object CreateObject(const char* name = "Object") { return registry.CreateObject(this, name); }
+	Object CreateObject(std::string name = "Object") {
+
+		Object ret = registry.CreateObject(this, name);
+
+		return registry.objects[ret.id];
+
+	}
 	void DestroyObject(Object& obj) { registry.DestroyObject(obj); }
 
 	Registry* GetRegistry() { return &registry; }

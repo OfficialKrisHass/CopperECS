@@ -1,5 +1,7 @@
-05/11/2022
+11/11/2022
 
--Added Component.h a Base Component Struct that every component you want to add to an object MUST inherit from
--Added Object* object to Component.h a pointer to the object the component is on
--When Object.AddComponent function is called component.object is set to this
+-Removed the SceneView Constructor that takes in a non pointer Scene
+-Fixed a Bug Where if there was only one object that didn't have the component you specified in SceneView it would
+ Still return it
+-Added SetObjectName and GetObjectName in Registry.h, pretty self explanatory, if you want these functions to be
+ a function of Object class you will need to add the definition into a .cpp file

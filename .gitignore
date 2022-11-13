@@ -400,3 +400,4 @@ FodyWeavers.xsd
 ECS.sln
 ECS.vcxproj.filters
 ECS.vcxproj
+Build/Debug-x86_64/ECS.exe

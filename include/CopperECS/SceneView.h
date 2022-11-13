@@ -10,21 +10,17 @@ public:
 	SceneViewIterator(Registry* registry, std::bitset<maxComponents> cMask, bool all, int32_t index, int32_t endIndex)
 		: registry(registry), componentMask(cMask), all(all), index(index), endIndex(endIndex) {}
 
-	Object operator*() const {
+	Object& operator*() const {
 
-		return registry->GetObjects()[index];
-
-	}
-
-	bool operator==(const SceneViewIterator& other) const {
-
-		return index == other.index || index == registry->GetObjects().size();
+		return registry->GetObjectFromID(index);
 
 	}
 
 	bool operator!=(const SceneViewIterator& other) const {
 
-		return index != other.index && index != registry->GetObjects().size();
+		return index != other.index && ValidObject();
+
+		return index != other.index && index != registry->GetNumOfObjects();
 
 	}
 
@@ -34,7 +30,7 @@ public:
 
 			index++;
 
-		} while (index < endIndex && ((!all && componentMask != (componentMask & registry->GetObjects()[index].GetComponentMask())) || !registry->GetObjects()[index]));
+		} while (index < endIndex && !ValidObject());
 
 		return *this;
 
@@ -47,12 +43,18 @@ private:
 	std::bitset<maxComponents> componentMask;
 	bool all = false;
 
+	bool ValidObject() const {
+
+		return registry->GetObjectFromID(index) && (all || componentMask == (componentMask & registry->GetObjectFromID(index).GetComponentMask()));
+
+	}
+
 };
 
 template<typename ... Components> class SceneView {
 
 public:
-	SceneView(Scene* scene) : registry(scene->GetRegistry()), endIndex((int32_t) registry->objects.size() - 1) {
+	SceneView(Scene* scene) : registry(scene->GetRegistry()), endIndex(/*(registry->GetNumOfObjects() - 1) < 0 ? 0 : registry->GetNumOfObjects() - 1*/registry->GetNumOfObjects()) {
 
 		if (sizeof...(Components) == 0) { all = true; } else {
 
@@ -66,25 +68,8 @@ public:
 
 		}
 
-		while (beginIndex < registry->objects.size() - 1 && (!registry->GetObjects()[beginIndex] || componentMask != (componentMask & registry->GetObjects()[beginIndex].GetComponentMask()))) { beginIndex++; }
-		while (endIndex >= 0 && endIndex > beginIndex && (!registry->objGetObjects()ects[endIndex] || componentMask != (componentMask & registry->GetObjects()[endIndex].GetComponentMask()))) { endIndex--; }
-
-		endIndex++;
-
-	}
-	SceneView(Scene scene) : scene(scene.GetRegistry()) {
-
-		if (sizeof...(Components) == 0) { all = true; } else {
-
-			int componentIDs[] = {GetCID<Components>()...};
-
-			for (int i = 0; i < sizeof...(Components); i++) {
-
-				componentMask.set(componentIDs[i]);
-
-			}
-
-		}
+		while (beginIndex < registry->GetNumOfObjects() - 1 && (!registry->GetObjectFromID(beginIndex) || componentMask != (componentMask & registry->GetObjectFromID(beginIndex).GetComponentMask()))) { beginIndex++; }
+		//while (endIndex >= 0 && endIndex > beginIndex && (!registry->GetObjectFromID(endIndex) || componentMask != (componentMask & registry->GetObjectFromID(endIndex).GetComponentMask()))) { endIndex--; }
 
 	}
 
