@@ -4,4 +4,5 @@
 #include "Registry.h"
 #include "Scene.h"
 #include "SceneView.h"
+#include "ComponentView.h"
 #include "Component.h"
