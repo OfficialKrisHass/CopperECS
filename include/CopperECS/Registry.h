@@ -1,10 +1,11 @@
 #pragma once
 
 #include <vector>
-#include <bitset>
 #include <unordered_map>
 
 #include "Object.h"
+
+#include "ComponentList.h"
 
 extern int cCounter;
 
@@ -34,11 +35,11 @@ public:
 	void* Get(int32_t objID, uint32_t index = 0) { return data + componentIndexes[objID][index] * size; }
 
 	uint32_t GetCount() const { return count; }
+	uint32_t GetCount(int32_t objID) { return (uint32_t) componentIndexes[objID].size(); }
 
 private:
 	char* data = nullptr;
 	std::unordered_map<int32_t, std::vector<uint32_t>> componentIndexes;
-	std::vector<uint32_t> removed;
 
 	size_t size;
 	uint32_t count;
@@ -155,6 +156,17 @@ public:
 		obj.componentMask[cID]--;
 
 		((T*) pools[cID]->Get(obj.id, index))->valid = false;
+
+	}
+
+	template<typename T> ComponentList<T> GetComponents(Scene* scene, int32_t id) {
+
+		if (!objects[id]) return ComponentList<T>(); //Empty constructor = invalid ComponentList
+
+		int cID = GetCID<T>();
+		if (objects[id].componentMask.size() <= cID || objects[id].componentMask[cID] <= 0) return ComponentList<T>(); //Empty constructor = invalid ComponentList
+
+		return ComponentList<T>(scene, id, cID);
 
 	}
 

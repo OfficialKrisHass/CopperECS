@@ -7,7 +7,7 @@ int cCounter = 0;
 struct Shape : public Component {
 
 	float color = 5.0f;
-	const static bool multipleOnOneObject = false;
+	const static bool multipleOnOneObject = true;
 
 };
 
@@ -17,23 +17,7 @@ struct Light : public Component {
 
 };
 
-struct Vector {
-
-	Vector() : x(0.0f), y(0.0f) {}
-
-	float x, y;
-
-};
-
 int main() {
-
-	Vector x;
-
-	x.x = 1.0f;
-	x.y = 5.0f;
-
-	Vector* y = &x;
-	*y = Vector();
 
 	Scene scene;
 
@@ -47,19 +31,25 @@ int main() {
 
 	scene.DestroyObject(o1);
 
-	o0.AddComponent<Shape>();
+	Shape* s1 = o0.AddComponent<Shape>();
+	Shape* s2 = o0.AddComponent<Shape>();
+	Shape* s3 = o0.AddComponent<Shape>();
+	s1->color++;
+	s2->color = 8.79f;
+	s3->color--;
 	o2.AddComponent<Shape>();
 	o3.AddComponent<Shape>();
 	o4.AddComponent<Shape>();
-	o5.AddComponent<Shape>();
+	//o5.AddComponent<Shape>();
 	o6.AddComponent<Shape>();
 
+
 	o2.RemoveComponent<Shape>();
-	o5.RemoveComponent<Shape>();
+	//o5.RemoveComponent<Shape>();
 
-	for (Component* c : ComponentView<Shape>(&scene)) {
+	for (Shape* shape : o5.GetComponents<Shape>()) {
 
-		std::cout << c->object->name << " ID: " << c->object->id << std::endl;
+		std::cout << shape->color << std::endl;
 
 	}
 

@@ -2,11 +2,12 @@
 
 #include <string>
 #include <vector>
-#include <bitset>
 
 #include "Component.h"
 
 const int maxComponents = 32;
+
+template<typename T> class ComponentList;
 
 class Object {
 
@@ -15,6 +16,8 @@ class Object {
 
 public:
 	Object() = default;
+
+	std::string name = "";
 
 	template<typename T> T* AddComponent() {
 		
@@ -30,6 +33,8 @@ public:
 	template<typename T> bool HasComponent()						{ return scene->registry.HasComponent<T>(id); }
 	template<typename T> void RemoveComponent(uint32_t index = 0)	{        scene->registry.RemoveComponent<T>(*this, index); }
 
+	template<typename T> ComponentList<T> GetComponents() { return scene->registry.GetComponents<T>(scene, id); }
+
 	int32_t GetID() const { return id; }
 	const std::vector<uint32_t>& GetComponentMask() const { return componentMask; }
 
@@ -39,10 +44,8 @@ public:
 	bool operator==(const Object* other) const { return id == other->id && scene == other->scene; }
 	bool operator!=(const Object* other) const { return !(*this == other); }
 
-
-public:
+private:
 	int32_t id = -1;
-	std::string name = "";
 	std::vector<uint32_t> componentMask;
 
 	Scene* scene = nullptr;

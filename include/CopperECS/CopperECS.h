@@ -5,4 +5,5 @@
 #include "Scene.h"
 #include "SceneView.h"
 #include "ComponentView.h"
+#include "ComponentList.h"
 #include "Component.h"
