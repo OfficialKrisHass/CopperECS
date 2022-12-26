@@ -25,7 +25,11 @@ public:
 
 	ComponentListIterator operator++() {
 
-		index++;
+		do {
+
+			index++;
+
+		} while (index < pool->GetCount(objID) && !((T*) pool->Get(objID, index))->Valid());
 
 		return *this;
 
@@ -47,7 +51,15 @@ public:
 	const ComponentListIterator<T> begin() const {
 
 		if (!valid) return ComponentListIterator<T>(nullptr, -1, 0);
-		return ComponentListIterator<T>(registry->GetComponentPool(cID), objID, 0);
+
+		uint32_t index = 0;
+		while (index < registry->GetComponentPool(cID)->GetCount(objID) && !((T*) registry->GetComponentPool(cID)->Get(objID, index))->Valid()) {
+
+			index++;
+
+		}
+
+		return ComponentListIterator<T>(registry->GetComponentPool(cID), objID, index);
 
 	}
 	const ComponentListIterator<T> end() const {

@@ -116,6 +116,7 @@ public:
 		T* component = static_cast<T*>(pools[cID]->Add(obj.id));
 		*component = T();
 		component->valid = true;
+		component->indexOnObject = objects[obj.id].componentMask[cID];
 
 		objects[obj.id].componentMask[cID]++;
 		obj.componentMask[cID]++;
@@ -151,6 +152,7 @@ public:
 
 		int cID = GetCID<T>();
 		if (objects[obj.id].componentMask.size() <= cID || objects[obj.id].componentMask[cID] == 0) return;
+		if (index >= objects[obj.id].componentMask[cID]) return;
 
 		objects[obj.id].componentMask[cID]--;
 		obj.componentMask[cID]--;

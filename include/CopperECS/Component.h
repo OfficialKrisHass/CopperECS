@@ -9,6 +9,7 @@ struct Component {
 
 public:
 	Object* object;
+	uint32_t indexOnObject;
 
 	bool Valid() const { return valid; }
 
