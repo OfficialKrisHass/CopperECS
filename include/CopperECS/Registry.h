@@ -1,189 +1,198 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
 
-#include "Object.h"
-
-#include "ComponentList.h"
+#include "Entity.h"
 
 extern int cCounter;
-
-template<typename T> int GetCID() {
-
-	static int cID = cCounter++;
-	return cID;
-
-}
-
-struct ComponentPool {
-
-public:
-	ComponentPool() = default;
-	ComponentPool(size_t size) : size(size), data(new char[maxComponents * size]), count(0) {}
-	~ComponentPool() { delete data; }
-
-	void* Add(int32_t objID) {
-
-		componentIndexes[objID].push_back(count);
-		count++;
-
-		return data + (count - 1) * size;
-
-	}
-	void* Get(uint32_t index) { return data + index * size;  }
-	void* Get(int32_t objID, uint32_t index = 0) { return data + componentIndexes[objID][index] * size; }
-
-	uint32_t GetCount() const { return count; }
-	uint32_t GetCount(int32_t objID) { return (uint32_t) componentIndexes[objID].size(); }
-
-private:
-	char* data = nullptr;
-	std::unordered_map<int32_t, std::vector<uint32_t>> componentIndexes;
-
-	size_t size;
-	uint32_t count;
-
-};
 
 class Registry {
 
 	friend class Scene;
 
 public:
-	Object CreateObject(Scene* scene, const std::string& name) {
+	struct ComponentPool {
 
-		if (!gaps.empty()) {
+		ComponentPool() = default;
+		ComponentPool(size_t size) : cSize(size), data(new char[size * maxComponents]) {}
+		~ComponentPool() {
 
-			int32_t id = gaps.front();
-
-			objects[id].id = id;
-			objects[id].scene = scene;
-			objects[id].name = name;
-
-			gaps.erase(gaps.begin());
-
-			return objects[id];
+			delete[] data;
 
 		}
 
-		int32_t id = (int32_t) objects.size();
-		objects.push_back(Object());
+		void* Add(uint32_t index) { validComponents.set(index); count++; return Get(index); }
+		void* Get(uint32_t index) { return data + index * cSize; }
+		void Remove(uint32_t index) { validComponents.reset(index); count--; }
 
-		objects[id].id = id;
-		objects[id].scene = scene;
-		objects[id].name = name;
+		bool Valid(uint32_t index) { return validComponents.test(index); }
+		uint32_t Count() { return count; }
 
-		return objects[id];
+	private:
+		char* data = nullptr;
+		std::bitset<maxComponents> validComponents;
+
+		size_t cSize;
+		uint32_t count = 0;
+
+	};
+
+public:
+	InternalEntity* CreateEntity(Scene* scene, const std::string& name) {
+
+		uint32_t id;
+		if (gaps.empty()) {
+
+			entities.push_back(InternalEntity());
+			id = (uint32_t) entities.size() - 1;
+
+		} else {
+
+			id = gaps.back();
+			gaps.pop_back();
+
+		}
+
+		entities[id].id = id;
+		entities[id].name = name;
+		entities[id].scene = scene;
+
+		return &entities[id];
 
 	}
-	Object CreateObjectFromID(int32_t id, Scene* scene, std::string name) {
+	InternalEntity* CreateEntityFromID(uint32_t eID, Scene* scene, const std::string& name, bool returnIfExists) {
 
-		if (id > (int32_t) objects.size() - 1) objects.resize(id + 1, Object());
+		if (eID > entities.size() - 1) entities.resize(eID + 1, InternalEntity());
+		if (returnIfExists && entities[eID]) return &entities[eID];
 
-		objects[id].id = id;
-		objects[id].scene = scene;
-		objects[id].name = name;
+		entities[eID].id = eID;
+		entities[eID].name = name;
+		entities[eID].scene = scene;
 
-		return objects[id];
+		for (int i = 0; i < gaps.size(); i++) {
+
+			uint32_t gap = gaps[i];
+			if (gap != eID) continue;
+
+			gaps.erase(gaps.begin() + i);
+			break;
+
+		}
+
+		return &entities[eID];
 
 	}
-	void DestroyObject(Object& obj) {
+	InternalEntity* GetEntityFromID(uint32_t eID) {
+		
+		if (eID == invalidID || eID > entities.size() - 1 || !entities[eID]) return nullptr;
+		return &entities[eID];
 
-		gaps.push_back(obj.id);
-		objects[obj.id] = Object();
+	}
+	void RemoveEntity(uint32_t eID) {
 
-		obj.name = "";
-		obj.scene = nullptr;
-		obj.id = -1;
-		obj.componentMask.clear();
+		entities[eID].Invalidate();
+		gaps.push_back(eID);
+
+		for (ComponentPool* pool : pools) {
+
+			if (!pool->Valid(eID)) continue;
+			pool->Remove(eID);
+
+		}
 
 	}
 
-	template<typename T> T* AddComponent(Object& obj) {
+	template<typename T> T* AddComponent(uint32_t eID) {
 
-		if (!obj) return nullptr;
-		if (!objects[obj.id]) return nullptr;
+		if (eID == invalidID) return nullptr;
+		if (!entities[eID]) return nullptr;
 
 		int cID = GetCID<T>();
 
-		if (obj.componentMask.size() <= cID) { obj.componentMask.resize(cID + 1, 0); objects[obj.id].componentMask.resize(cID + 1, 0); }
-		if (obj.componentMask[cID] == 1 && !T::multipleOnOneObject) { std::cout << "Can't add Component to Object " << obj.name << " Because there already is one" << std::endl; return nullptr; }
-
-		if (pools.size() <= cID) pools.resize(cID + 1, nullptr);
+		if (pools.size() < cID + 1) pools.resize(cID + 1, nullptr);
 		if (!pools[cID]) pools[cID] = new ComponentPool(sizeof(T));
 
-		T* component = static_cast<T*>(pools[cID]->Add(obj.id));
-		*component = T();
+		T* component = new (pools[cID]->Add(eID)) T();
+		component->entity = &entities[eID];
 		component->valid = true;
-		component->indexOnObject = objects[obj.id].componentMask[cID];
+		component->Added();
 
-		objects[obj.id].componentMask[cID]++;
-		obj.componentMask[cID]++;
+		entities[eID].cMask.set(cID);
 
 		return component;
 
 	}
-	template<typename T> T* GetComponent(int32_t id, uint32_t index = 0) {
+	template<typename T> T* GetComponent(uint32_t eID) {
 
-		if (!objects[id]) return nullptr;
+		if (eID == invalidID) return nullptr;
+		if (!entities[eID]) return nullptr;
 
 		int cID = GetCID<T>();
-		if (objects[id].componentMask.size() <= cID || objects[id].componentMask[cID] <= 0) return nullptr;
+		if (!entities[eID].cMask.test(cID)) return nullptr;
 
-		T* component = static_cast<T*>(pools[cID]->Get(id, index));
+		T* component = static_cast<T*>(pools[cID]->Get(eID));
 		return component;
 
 	}
-	template<typename T> bool HasComponent(int32_t id) {
+	template<typename T> bool HasComponent(uint32_t eID) {
 
-		if (!objects[id]) return false;
+		if (eID == invalidID) return false;
+		if (!entities[eID]) return false;
 
 		int cID = GetCID<T>();
-		
-		if (objects[id].componentMask.size() <= cID) return false;
-		return objects[id].componentMask[cID] >= 1;
+		return entities[eID].cMask.test(cID);
 
 	}
-	template<typename T> void RemoveComponent(Object& obj, uint32_t index = 0) {
+	template<typename T> void RemoveComponent(uint32_t eID) {
 
-		if (!obj) return;
-		if (!objects[obj.id]) return;
-
-		int cID = GetCID<T>();
-		if (objects[obj.id].componentMask.size() <= cID || objects[obj.id].componentMask[cID] == 0) return;
-		if (index >= objects[obj.id].componentMask[cID]) return;
-
-		objects[obj.id].componentMask[cID]--;
-		obj.componentMask[cID]--;
-
-		((T*) pools[cID]->Get(obj.id, index))->valid = false;
-
-	}
-
-	template<typename T> ComponentList<T> GetComponents(Scene* scene, int32_t id) {
-
-		if (!objects[id]) return ComponentList<T>(); //Empty constructor = invalid ComponentList
+		if (eID == invalidID) return;
+		if (!entities[eID]) return;
 
 		int cID = GetCID<T>();
-		if (objects[id].componentMask.size() <= cID || objects[id].componentMask[cID] <= 0) return ComponentList<T>(); //Empty constructor = invalid ComponentList
+		if (!entities[eID].cMask.test(cID)) return;
 
-		return ComponentList<T>(scene, id, cID);
+		pools[cID]->Remove(eID);
+		entities[eID].cMask.reset(cID);
+
+		T* component = static_cast<T*>(pools[cID]->Get(eID));
+		component->Removed();
+		component->valid = false;
+
 
 	}
 
-	int GetNumOfObjects() { return (int) objects.size(); }
+	template<typename T> static int GetCID() {
 
-	Object& GetObjectFromID(int32_t id) { return objects[id]; }
-	std::string GetObjectName(Object obj) { return objects[obj.id].name; }
+		static int cID = cCounter++;
+		return cID;
 
-	ComponentPool* GetComponentPool(uint32_t cID) { return pools[cID]; }
+	}
 
-	void SetObjectName(std::string name, Object obj) { obj.name = name; objects[obj.id].name = name; }
+	void Cleanup() {
+
+		for (ComponentPool* pool : pools) {
+
+			delete pool;
+
+		}
+
+		entities.clear();
+		gaps.clear();
+		pools.clear();
+
+	}
+
+	ComponentPool* GetComponentPool(int cID) {
+
+		if (pools.size() < cID + 1) return nullptr;
+
+		return pools[cID];
+
+	}
 
 private:
-	std::vector<Object> objects;
-	std::vector<uint32_t> gaps;
+	std::vector<InternalEntity> entities;
 	std::vector<ComponentPool*> pools;
+	std::vector<uint32_t> gaps;
 
 };

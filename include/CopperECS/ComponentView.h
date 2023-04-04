@@ -2,62 +2,82 @@
 
 #include "Scene.h"
 
-struct ComponentViewIterator {
-
-public:
-	ComponentViewIterator(uint32_t index, ComponentPool* pool) : index(index), pool(pool) {}
-
-	Component* operator*() {
-
-		return (Component*) pool->Get(index);
-
-	}
-
-	bool operator!=(const ComponentViewIterator& other) const {
-
-		return index != other.index;
-
-	}
-
-	ComponentViewIterator& operator++() {
-
-		do {
-
-			index++;
-
-		} while (index < pool->GetCount() && !Valid());
-
-		return *this;
-
-	}
+template<typename T> class ComponentView {
 
 private:
-	uint32_t index;
-	ComponentPool* pool;
+	struct Iterator {
 
-	bool Valid() const { return ((Component*) pool->Get(index))->Valid(); }
+		Iterator(uint32_t index, uint32_t endIndex, Registry::ComponentPool* pool) : index(index), endIndex(endIndex), pool(pool) {}
 
-};
+		T* operator*() {
 
-template<typename Component> class ComponentView {
+			return static_cast<T*>(pool->Get(index));
+
+		}
+		bool operator!=(const Iterator& other) {
+
+			return index != other.index + 1;
+
+		}
+		Iterator& operator++() {
+
+			if (index == endIndex) {
+
+				index++;
+				return *this;
+			
+			}
+
+			do {
+
+				index++;
+
+			} while (!pool->Valid(index) || !(*((T*) pool->Get(index))->GetEntity()));
+
+			return *this;
+
+		}
+
+	private:
+		uint32_t index;
+		uint32_t endIndex;
+		Registry::ComponentPool* pool;
+
+	};
 
 public:
-	ComponentView(Scene* scene) : registry(scene->GetRegistry()), pool(registry->GetComponentPool(GetCID<Component>())) {
+	ComponentView(Scene* scene) : scene(scene), pool(scene->GetComponentPool(Registry::GetCID<T>())) {
 
-		endIndex = pool->GetCount();
+		if (!pool) {
 
-		while (!((Component*) pool->Get(beginIndex))->Valid()) { beginIndex++; }
+			beginIndex = maxComponents;
+			endIndex = maxComponents - 1;
+			return;
+
+		}
+
+		endIndex = maxComponents - 1;
+		while (beginIndex != maxComponents && (!pool->Valid(beginIndex) || !(*((T*) pool->Get(beginIndex))->GetEntity()))) {
+			
+			beginIndex++;
+		
+		}
+		while (endIndex >= beginIndex && (!pool->Valid(endIndex) || !(*((T*) pool->Get(endIndex))->GetEntity()))) {
+
+			endIndex--;
+
+		}
 
 	}
 
-	const ComponentViewIterator begin() const { return ComponentViewIterator(beginIndex, pool); }
-	const ComponentViewIterator end() const { return ComponentViewIterator(endIndex, pool); }
+	const Iterator begin() const { return Iterator(beginIndex, endIndex, pool); }
+	const Iterator end() const { return Iterator(endIndex, endIndex, pool); }
 
 private:
-	Registry* registry;
-	ComponentPool* pool;
+	Scene* scene = nullptr;
+	Registry::ComponentPool* pool = nullptr;
 
 	uint32_t beginIndex = 0;
-	uint32_t endIndex;
+	uint32_t endIndex = 0;
 
 };

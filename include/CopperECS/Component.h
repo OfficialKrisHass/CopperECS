@@ -1,21 +1,23 @@
 #pragma once
 
-class Object;
-class Registry;
+#include "Entity.h"
 
-struct Component {
+class Component {
 
 	friend class Registry;
 
 public:
-	Object* object;
-	uint32_t indexOnObject;
+	virtual void Added() {}
+	virtual void Removed() {}
 
-	bool Valid() const { return valid; }
+	InternalEntity* GetEntity() const { return entity; }
+
+	operator bool() const { return valid; }
 
 private:
-	const static bool multipleOnOneObject = true;
-	
-	bool valid;
+	Entity entity = nullptr;
+
+protected:
+	bool valid = false;
 
 };
