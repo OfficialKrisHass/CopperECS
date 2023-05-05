@@ -7,6 +7,8 @@
 const int maxComponents = 32;
 const uint32_t invalidID = 4'294'967'295;
 
+class Scene;
+
 class InternalEntity {
 
 	friend class Registry;
@@ -18,26 +20,10 @@ public:
 
 	std::string name = "";
 
-	template<typename T> T* AddComponent() {
-
-		return scene->registry.AddComponent<T>(id);
-
-	}
-	template<typename T> T* GetComponent() {
-
-		return scene->registry.GetComponent<T>(id);
-
-	}
-	template<typename T> bool HasComponent() {
-
-		return scene->registry.HasComponent<T>(id);
-
-	}
-	template<typename T> void RemoveComponent() {
-
-		scene->registry.RemoveComponent<T>(id);
-
-	}
+	template<typename T> T* AddComponent();
+	template<typename T> T* GetComponent();
+	template<typename T> bool HasComponent();
+	template<typename T> void RemoveComponent();
 
 	uint32_t ID() const { return id; }
 
@@ -108,3 +94,5 @@ private:
 	Scene* scene = nullptr;
 
 };
+
+#include "Entity.inl"
